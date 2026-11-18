@@ -50,6 +50,12 @@ content-tools plugin, see the README): the plan is
 PDF, docx, slides, a video-storyboard 9-cut table, storyboard frames as images.
 Ask only if there are two plausible plans.
 
+**A storyboard** (a cut table, storyboard frames, or only a brief to storyboard from): follow
+`references/storyboard.md`. It gets the table into one shape as `storyboard.md`, and
+`storyboard.py` converts it to `edit_plan.yaml` — timings, captions, narration lines, end card,
+and either footage left to pick or `--generate` blocks. Works without the video-storyboard
+plugin. Phases 2–3 then fill in the footage.
+
 Either way, list the scenes back as a table: scene, duration, what it must show,
 on-screen text, VO. When a duration is missing, estimate it from the VO (about
 4 Traditional Chinese characters per second).

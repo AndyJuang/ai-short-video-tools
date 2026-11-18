@@ -50,6 +50,9 @@ whip-pan or shake; a scene can jump-cut between source ranges, change speed, and
 several timed sound effects. `sfx.py` fetches a CC0 starter set (whoosh, pop, ding, click)
 from a pinned public-domain repo, or a named CC0 sound from Freesound, and records each
 file's licence and source in `SOURCES.txt`.
+A storyboard — video-storyboard's cut table, any other table, storyboard frames, or one
+drafted from a brief — becomes an edit plan with `storyboard.py`: timings, captions,
+narration lines and the end card, with footage left to pick or every cut a generated still.
 A gap the user agrees to fill can be a Gemini-generated 9:16 still or a Veo clip,
 text-to-video or animating an approved still (`generate.py`):
 it prints an estimate from a cached price table and generates only with `--yes`, after
@@ -131,8 +134,10 @@ skills/video-edit/
   scripts/tts.py               voiceover.lines → vo/<id>.mp3 (ElevenLabs TTS, brand.json narrator)
   scripts/generate.py          scene generate.prompt → gen/<scene>.jpg (Gemini) or .mp4 (Veo, audio stripped); estimate first, --yes to spend, --cap
   scripts/render_plan.py       edit plan → mp4 + srt + qc.json, voiced scenes timed to their lines; pace: sns, caption fx, sfx; --picks sheet; --check speech diff
+  scripts/storyboard.py        storyboard table → edit_plan.yaml (timings, captions, narration lines, end card, picks or --generate)
   scripts/sfx.py               CC0 sound effects → assets/sfx/<name>.wav + SOURCES.txt (pinned starter set; Freesound with FREESOUND_API_KEY)
   references/edit-plan.md     the edit plan format render_plan.py reads
+  references/storyboard.md     the table shape, and how a storyboard from anywhere (or none) gets into it
   references/shorts-output-spec.md   the shared delivery constants
 
 skills/video-style-clone/
@@ -161,6 +166,9 @@ builder. `beats.py --self-test` checks the grid on clicks, silence and a drone.
 silent b-roll, still) and checks size, frame rate, real-speed playback, loudness,
 safe area, SRT cues, warnings, and that a missing asset fails before rendering; then beat
 snapping, typed and popped captions, motion presets, sfx lists, jump cuts and speed.
+`storyboard.py --self-test` checks timecodes, memo splitting into caption and narration, the
+camera map, the end card, generate blocks, that a table without timecodes is refused, and
+that a planted edit_plan.yaml symlink is refused.
 `sfx.py --self-test` checks that the starter set is pinned, peak-normalised and recorded,
 that an existing file is kept, and that a non-CC0 Freesound result is refused.
 `generate.py --self-test` checks that the estimate sends nothing, that unchanged prompts
