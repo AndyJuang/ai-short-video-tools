@@ -58,20 +58,71 @@ def resolve(val):
 def project_env():
     """<project root>/.env, or None outside a project. The root is the nearest folder holding
     .git at or above the working directory (the project the scripts are run from), below
-    home. Never searched from the material folder: client and downloaded files live there,
+    home, and only one on the trusted-projects list (check_env.py --trust). Never searched
+    from the material folder: client and downloaded files live there,
     and a .env or .git planted among them must neither supply a key (it would receive our
     footage and prompts) nor have git run inside a repository someone else configured."""
+    root = project_root()
+    if not root:
+        return None
+    env = os.path.join(root, ".env")
+    if not os.path.isfile(env):
+        return None
+    if root not in trusted_projects():
+        print(f"! ignoring {env}: this folder is not on your trusted-projects list — if it is "
+              f"your project, run `check_env.py --trust` from {root}", file=sys.stderr)
+        return None
+    if not private(env) or tracked(root, ".env"):
+        return None
+    return env
+
+
+def project_root():
+    """The nearest folder at or above the working directory that holds .git, below home
+    (real path), or None. Outside home, e.g. /tmp or a mounted drive, there is no project."""
     d, home = os.path.realpath("."), os.path.realpath(os.path.expanduser("~"))
     if os.path.commonpath([d, home]) != home:
-        return None                    # outside home, e.g. /tmp or a mounted drive: no project
+        return None
     while d != home:
         if os.path.exists(os.path.join(d, ".git")):
-            env = os.path.join(d, ".env")
-            if not os.path.isfile(env) or not private(env) or tracked(d, ".env"):
-                return None
-            return env
+            return d
         d = os.path.dirname(d)
     return None
+
+
+CONFIG = ".ad-video-tools"     # per-user folder in home: the global .env and the trusted-projects list
+
+
+def config_path(name):
+    return os.path.join(os.path.expanduser("~"), CONFIG, name)
+
+
+def trusted_projects():
+    """Project roots whose .env may supply keys: the ones init-video set up (check_env.py
+    --trust). Kept in the user's home, not in the project, so a cloned or downloaded repo
+    can't vouch for itself."""
+    try:
+        return {ln.strip() for ln in open(config_path("projects.txt"), encoding="utf-8") if ln.strip()}
+    except OSError:
+        return set()
+
+
+def trust():
+    """Add the project the working directory is in to the trusted list; returns its root."""
+    root = project_root()
+    if not root:
+        sys.exit("no project here: run --trust from inside the project folder (the one with "
+                 ".git), and keep the project under your home folder")
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in root):   # a newline would add a second entry
+        sys.exit(f"refusing to trust {root!r}: its path contains a control character")
+    if root not in trusted_projects():
+        path = config_path("projects.txt")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(writable(path), "a", encoding="utf-8") as fh:
+            fh.write(root + "\n")
+        if os.name != "nt":
+            os.chmod(path, 0o600)
+    return root
 
 
 def private(path):
@@ -128,7 +179,7 @@ def find_key(name="ELEVENLABS_API_KEY"):
         return read_env(path, name), path
     if os.environ.get(name):
         return os.environ[name], "environment"
-    path = os.path.join(os.path.expanduser("~"), ".ad-video-tools", ".env")
+    path = config_path(".env")
     return (read_env(path, name), path) if read_env(path, name) else (None, None)
 
 
@@ -281,6 +332,20 @@ def self_test():
             os.chmod(os.path.join(proj, ".env"), 0o644)
             assert key_from(start, "K") == glob, "trusted a world-readable .env"
             os.chmod(os.path.join(proj, ".env"), 0o600)
+        assert key_from(start, "K") == glob, "used the .env of a project not on the trusted list"
+        os.chdir(start)
+        assert trust() == os.path.realpath(proj) and trust() == os.path.realpath(proj)
+        assert trusted_projects() == {os.path.realpath(proj)}, "trusted twice or not at all"
+        if os.name != "nt":                                # a folder name can hold a newline
+            odd = os.path.join(home_d, "x\n" + os.path.realpath(home_d))
+            os.makedirs(os.path.join(odd, ".git"))
+            os.chdir(odd)
+            try:
+                trust()
+                raise AssertionError("trusted a path with a newline in it")
+            except SystemExit:
+                pass
+            assert trusted_projects() == {os.path.realpath(proj)}, "a newline added an entry"
         assert key_from(start, "K") == ("project", os.path.join(os.path.realpath(proj), ".env")), "project .env not used"
         assert key_from(start, "G")[0] == "global", "empty project line should fall back"
         assert key_from(start, "P") == (None, None), "a {Placeholder} was taken for a key"
@@ -293,6 +358,8 @@ def self_test():
         os.makedirs(os.path.join(fake, ".git"))
         open(os.path.join(fake, ".env"), "w").write("K=fake\n")
         os.chmod(os.path.join(fake, ".env"), 0o600)   # private, so the next check is what decides
+        os.chdir(fake)
+        trust()
         assert key_from(fake, "K") == glob, "trusted a .env git could not vouch for"
         cloned = os.path.join(home_d, "cloned")           # a repo that ships its own .env
         os.makedirs(cloned)
@@ -302,6 +369,8 @@ def self_test():
         subprocess.run(g[:3] + ["init", "-q"], check=True)
         subprocess.run(g + ["add", ".env"], check=True)
         subprocess.run(g + ["commit", "-qm", "x"], check=True)
+        os.chdir(cloned)
+        trust()                                            # trusted, so the git check is what decides
         assert key_from(cloned, "K") == glob, "used a .env committed to the repo"
         pwned = os.path.join(d, "pwned")                   # a repo config that names a command
         subprocess.run(g[:3] + ["config", "core.fsmonitor", f"touch {pwned}; false"], check=True)

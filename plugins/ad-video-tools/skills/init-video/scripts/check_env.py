@@ -249,6 +249,12 @@ def main():
     args = [a for a in sys.argv[1:] if not a.startswith("-")]
     if "--self-test" in sys.argv:
         return self_test()
+    if "--trust" in sys.argv:              # init-video, once per project: its .env may supply keys
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                        "..", "..", "video-edit", "scripts"))
+        from transcribe import config_path, trust
+        print(f"trusted: {trust()} (listed in {config_path('projects.txt')})")
+        return
     check_tools()
     if fails:
         sys.exit("\nfix the tooling first — nothing below can be checked without it")

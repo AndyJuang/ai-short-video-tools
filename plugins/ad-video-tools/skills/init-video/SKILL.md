@@ -49,7 +49,13 @@ cp "${CLAUDE_PLUGIN_ROOT}/skills/video-style-clone/assets/brand.example.json" ./
 cp "${CLAUDE_PLUGIN_ROOT}/skills/init-video/assets/project.gitignore" ./.gitignore
 [ -e .env ] || { cp "${CLAUDE_PLUGIN_ROOT}/skills/init-video/assets/project.env" ./.env; chmod 600 .env; }
 git init -q 2>/dev/null
+uv run "${CLAUDE_PLUGIN_ROOT}/skills/init-video/scripts/check_env.py" --trust
 ```
+
+`--trust` adds this folder to `~/.ad-video-tools/projects.txt`, the list of projects whose `.env` the
+scripts will read keys from. A repo someone else made is never on it, so its `.env` is
+ignored even if it looks like ours. A project set up before this list existed needs
+`--trust` run once from its root; until then the scripts print that they're ignoring its `.env`.
 
 `.env` holds the optional API keys as `{Placeholder}` lines. The user fills them in
 later, in Phases 3b, 3c and 3d. It comes after `.gitignore`, which ignores it, so the scaffold
@@ -191,7 +197,8 @@ skill set up, beside `brand.json` and `.git`. The scaffold's `.gitignore` alread
 it. Each client's work then bills that client's key. The scripts read only that one file:
 the `.env` in the nearest folder at or above the working directory that holds `.git`, so
 run them from inside the project. A `.env` anywhere else, such as inside `input/` among
-client files, is ignored on purpose. So is a `.env` that git tracks: a committed one came with someone else's repo, not from the user. On macOS and Linux the file must also be private to the user (`chmod 600`, which the scaffold sets): a world-readable `.env` usually came in a download, so the scripts skip it and print the `chmod` to run if it is the user's own. Only when there's
+client files, is ignored on purpose. So is the `.env` of a project that isn't on the trusted list
+(Phase 0's `--trust`), and a `.env` that git tracks: a committed one came with someone else's repo, not from the user. On macOS and Linux the file must also be private to the user (`chmod 600`, which the scaffold sets): a world-readable `.env` usually came in a download, so the scripts skip it and print the `chmod` to run if it is the user's own. Only when there's
 no project does the key go in the global `~/.ad-video-tools/.env`. That covers `/video-edit` on
 a loose folder, and a project outside the home folder, for example on an external drive. A key missing from the project's `.env` falls back to an environment
 variable of the same name, then to the global file; `check_env.py` and `--doctor` print where each key came from, so say it
