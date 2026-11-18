@@ -1,0 +1,21 @@
+{
+  "name": "feature-list-4x5",
+  "measured_from": "unknown",
+  "summary": "4:5 PDP ad. Logo bar, 16:9 video window, deep panel with headline, badge pill, ruled section label, five chip+description rows, pill CTA with arrow.",
+  "canvas": {"w": 1080, "h": 1350, "fps": 30},
+  "bands": {"bar_h": 144, "vid_y": 144, "vid_h": 608, "panel_y": 752},
+  "bar": {"fill": "white", "logo_h": 104, "logo_max_w": 640},
+  "panel": {
+    "kind": "list",
+    "fill": "panel",
+    "headline": {"top": 776, "size": 58, "max_w": 760},
+    "badge":    {"y": [840, 895], "pad": 90, "size": 30, "radius": 28},
+    "label":    {"top": 915, "size": 26, "rule_y": 928, "rule_w": 70},
+    "rows":     {"y0": 955, "pitch": 54.25, "chip_x": [240, 351], "chip_h": 42,
+                 "chip_size": 28, "text_x": 372, "text_size": 34, "radius": 10},
+    "cta":      {"box": [232, 1240, 847, 1319], "size": 36, "radius": 40, "marker": "arrow"}
+  },
+  "caption": {"x": 70, "y": 60, "sizes": [66, 86], "indent": 26, "stroke": 11},
+  "retarget": {"ratios": ["4x5", "9x16", "1x1"]},
+  "notes": "Retargeting keeps the bar and the 598px panel; the 16:9 window becomes 1178px tall at 9:16 and a 338px strip at 1:1. Row pitch is 54.25px — fractional, and not something anyone picks by eye. CTA arrow is drawn as a polygon; U+25B6 is tofu in most CJK faces."
+}

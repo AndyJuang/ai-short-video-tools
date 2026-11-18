@@ -1,0 +1,13 @@
+{
+	"name": "applemint-marketplace",
+	"owner": {
+		"name": "applemint Ltd."
+	},
+	"plugins": [
+		{
+			"name": "ad-video-tools",
+			"source": "./plugins/ad-video-tools",
+			"description": "Rebuild an ad in an existing video's exact layout with your footage, copy, language and brand, or cut a short from a plan and a folder of raw footage."
+		}
+	]
+}

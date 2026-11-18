@@ -1,0 +1,32 @@
+{
+  "_comment": "Copy into the project as brand.json. Every key is optional; anything missing falls back to the template defaults. Colours are hex. Logo paths are relative to the project root; font overrides are font filenames, looked up in the OS's font folders (~/Library/Fonts, %LOCALAPPDATA%\\Microsoft\\Windows\\Fonts, ~/.local/share/fonts, and the system ones), or a path relative to the project root.",
+
+  "palette": {
+    "accent":  "#E91E63",
+    "panel":   "#C2185B",
+    "ink":     "#2C2C2C",
+    "surface": "#FFF5F8",
+    "white":   "#ffffff",
+    "muted":   "#8A8084"
+  },
+
+  "logo": {
+    "default": "assets/logo.png",
+    "ko": "assets/logo_ko.png"
+  },
+
+  "fonts": {
+    "ko": {"heavy": "NotoSansKR-Black.otf"}
+  },
+
+  "narrator": {
+    "_comment": "ElevenLabs voice_id per language, used by video-edit tts.py",
+    "tc": "<voice_id>"
+  },
+
+  "voice": {
+    "register": "second person, present tense, no exclamation marks",
+    "avoid": ["prices", "walk times", "medical or health claims"],
+    "must_carry": ["brand name in the URL line"]
+  }
+}

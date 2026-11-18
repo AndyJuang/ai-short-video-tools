@@ -1,0 +1,33 @@
+# Materials: too big for git, and they already live in Drive.
+# materials.json is the record of what was here — that is what gets committed.
+input/**
+!input/**/
+!input/**/video.json
+!input/**/materials.json
+!input/**/edit_plan.yaml
+!input/.gitkeep
+
+# Renders and scratch. Rebuildable from the params above.
+# output/* not output/: git cannot re-include a file under an ignored directory.
+output/*
+!output/.gitkeep
+build/
+
+# Client-supplied media, except the brand marks a build needs to run.
+assets/*
+!assets/*.png
+!assets/*.svg
+!assets/.gitkeep
+
+# Stray media at the root — footage belongs in input/, brand marks in assets/.
+/*.mp4
+/*.mov
+/*.jpg
+/*.png
+
+# OS junk. Finder and Explorer drop these next to the media.
+.DS_Store
+[Tt]humbs.db
+
+# Secrets. A project-only ELEVENLABS_API_KEY lives here (init-video Phase 3b).
+.env

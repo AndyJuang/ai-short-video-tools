@@ -1,0 +1,20 @@
+{
+  "name": "single-offer-9x16",
+  "measured_from": "unknown",
+  "summary": "Single-offer ad. Logo bar, tall video window, cream panel with a pill, a two-tone headline, one wide CTA, a hairline rule and a URL line.",
+  "canvas": {"w": 1080, "h": 1920, "fps": 30},
+  "bands": {"bar_h": 186, "vid_y": 186, "vid_h": 1180, "panel_y": 1366},
+  "bar": {"fill": "white", "logo_h": 120, "logo_max_w": 760},
+  "panel": {
+    "kind": "offer",
+    "fill": "surface",
+    "pill":     {"y": [1410, 1472], "pad": 96, "size": 34, "radius": 31},
+    "headline": {"top": 1521, "size": 86, "max_w": 720},
+    "cta":      {"y": [1684, 1777], "pad": 170, "size": 40, "radius": 46, "marker": "chevron"},
+    "rule":     {"y": 1806, "x": [340, 740]},
+    "url":      {"top": 1831, "size": 30}
+  },
+  "caption": {"x": 70, "y": 60, "sizes": [66, 86], "indent": 26, "stroke": 11},
+  "retarget": {"ratios": ["9x16", "4x5", "1x1"]},
+  "notes": "Measured off a 4:5 reference with a 556px panel. Retargeting keeps the bar and the panel at their measured size and gives the video window whatever height is left, so the panel reads identically across ratios: 1180px of footage at 9:16, 610px at 4:5, 340px at 1:1 (a wide strip — check the crop on the contact sheet). The reference has two side-by-side CTAs at [100,528] and [552,980]; this template carries one wide centred button. The reference also has a date line at y=1044 (reference coords) between headline and CTAs — omitted here, with the gap closed by moving the headline down 16px."
+}

@@ -1,0 +1,39 @@
+{
+  "_comment": "Copy into input/<video>/ as video.json. This is the whole edit: git tracks it, the materials beside it are ignored. Paths are relative to this directory. Run: uv run build.py <video> [lang] from the project root.",
+
+  "template": "single-offer-9x16",
+  "src": "clip.mov",
+  "music": null,
+  "music_in": 0,
+  "mode": "auto",
+  "crop_band": null,
+
+  "_shots": "(source in-point, duration) per shot. Total near the reference's, cut rhythm close to what measure.py reported. Shared by every language — only the copy changes. Slides: (image filename, duration) per shot, or omit `shots` for every still in src, 3s each.",
+  "shots": [[0.4, 2.6], [3.6, 2.4]],
+
+  "_copy": "Panel copy per language. Keys follow the template's panel kind: offer -> pill, head, cta, url. list -> headline, badge, label, points, cta. `head` is one centred line, two-tone: [[text, colour key], ...].",
+  "default_lang": "tc",
+  "copy": {
+    "tc": {
+      "pill": "標籤文字",
+      "head": [["前半段", "ink"], ["重點詞", "accent"]],
+      "cta": "行動呼籲",
+      "url": "BRAND NAME"
+    },
+    "ko": {
+      "pill": "라벨",
+      "head": [["앞부분 ", "ink"], ["강조어", "accent"]],
+      "cta": "클릭하기",
+      "url": "BRAND NAME"
+    }
+  },
+
+  "_sync": "Optional. Put cuts and moves on the bed's beat. snap: beat | bar | null (cuts move to the next grid point, min_shot apart). kenburns: drift | beat. pulse: null | flash | zoom. Omit the key and nothing is analysed.",
+  "sync": {"snap": null, "kenburns": "drift", "pulse": null, "min_shot": 0.8},
+
+  "_captions": "(line 1, line 2) per shot, per language. Must be the same length as shots — the build refuses otherwise.",
+  "captions": {
+    "tc": [["第一行", "第二行"], ["第一行", "第二行"]],
+    "ko": [["첫 줄", "둘째 줄"], ["첫 줄", "둘째 줄"]]
+  }
+}
