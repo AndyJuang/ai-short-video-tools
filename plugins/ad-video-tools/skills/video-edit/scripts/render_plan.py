@@ -51,7 +51,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "..", "video-style-clone", "scripts"))
 import build  # noqa: E402  font table, fitted(), missing_glyphs(), has_audio(), run()
 import beats  # noqa: E402  grid() runs librosa in its own uv env
-from ffsafe import media  # noqa: E402  refuse playlist/list files posing as media
+from ffsafe import inside, media  # noqa: E402  refuse playlist/list files posing as media
 
 W, H, FPS = 1080, 1920, 30
 RATIOS = ("9x16", "4x5", "1x1")
@@ -121,6 +121,13 @@ def next_out(plan_path, content_id):
 
 
 # ---- validation -------------------------------------------------------------
+def plan_file(asset_dir, rel):
+    """A path from the plan: relative to the material folder, and inside it or inside the
+    project the scripts run from (so ../../assets/sfx/whoosh.wav works), nowhere else."""
+    from transcribe import project_root
+    return inside(os.path.join(asset_dir, str(rel)), (asset_dir, project_root()), f"plan path {rel!r}")
+
+
 def load(plan_path, asset_dir):
     """The plan, its scenes in order, and the warnings so far. Exits on what
     cannot be rendered around: a missing timeline asset or an empty scene."""
@@ -131,7 +138,7 @@ def load(plan_path, asset_dir):
     warns, missing, prev = [], [], 0.0
     for sc in scenes:
         n = sc.get("scene", "?")
-        f = os.path.join(asset_dir, str(sc.get("asset_file") or ""))
+        f = plan_file(asset_dir, str(sc.get("asset_file") or ""))
         if sc.get("kind") == "card":
             pass                      # drawn from brand.json at render time
         elif not sc.get("asset_file") or not os.path.isfile(f):
@@ -143,7 +150,7 @@ def load(plan_path, asset_dir):
                          f"scenes are laid end to end by their durations")
         prev = float(sc["end_sec"])
     for c in (plan.get("voiceover") or {}).get("cuts") or []:
-        if "pause" not in c and not os.path.isfile(os.path.join(asset_dir, str(c.get("src") or ""))):
+        if "pause" not in c and not os.path.isfile(plan_file(asset_dir, str(c.get("src") or ""))):
             missing.append(f"voiceover cut: {c.get('src')!r}")
     if missing:
         sys.exit("missing required assets in " + asset_dir + ":\n  " + "\n  ".join(missing))
@@ -192,7 +199,7 @@ def retime(plan, scenes, asset_dir, warns, grid=()):
     vo, by_scene = plan.get("voiceover") or {}, {}
     gap, tail = float(vo.get("gap", VO_GAP)), float(vo.get("tail", VO_TAIL))
     for ln in vo.get("lines") or []:
-        p = os.path.join(asset_dir, ln.get("asset_file") or f"vo/{ln['id']}.mp3")
+        p = plan_file(asset_dir, ln.get("asset_file") or f"vo/{ln['id']}.mp3")
         if os.path.isfile(p):
             by_scene.setdefault(ln.get("scene"), []).append((p, duration(p), ln.get("text", "")))
         else:
@@ -261,7 +268,7 @@ def room_tone(vo, asset_dir, work):
     rt = vo.get("room_tone")
     if not rt:
         return None
-    src = os.path.join(asset_dir, str(rt.get("src")))
+    src = plan_file(asset_dir, str(rt.get("src")))
     if not os.path.isfile(src):
         sys.exit(f"voiceover.room_tone: {rt.get('src')!r} not found in {asset_dir}")
     a, b = float(rt["in"]), float(rt["out"])
@@ -285,7 +292,7 @@ def cut_track(vo, asset_dir, work, warns):
                 parts.append(piece(["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"], dur, out))
             rows.append({"pause": dur, "at": round(at, 3), "end": round(at + dur, 3)})
         else:
-            src = os.path.join(asset_dir, c["src"])
+            src = plan_file(asset_dir, c["src"])
             a, b = snap_cut(float(c["in"]), float(c["out"]), words_of(src))
             if b <= a:
                 sys.exit(f"voiceover cut {c['src']} {c['in']}–{c['out']}: nothing left after snapping to words")
@@ -500,7 +507,7 @@ def scene_captions(sc, asset_dir):
                 for _, at, d, text in sc.get("_vo", []) if text]
     lo, t0 = float(sc.get("source_in_sec") or 0), float(sc["start_sec"])
     hi = lo + float(sc["end_sec"]) - t0
-    cues = json.load(open(os.path.join(asset_dir, sc["cues"]), encoding="utf-8"))
+    cues = json.load(open(plan_file(asset_dir, sc["cues"]), encoding="utf-8"))
     return [{"text": c["text"], "style": "body", "start_sec": t0 + max(c["start"], lo) - lo,
              "end_sec": t0 + min(c["end"], hi) - lo}
             for c in cues if min(c["end"], hi) - max(c["start"], lo) > 0.1]
@@ -672,7 +679,7 @@ def render(plan_path, asset_dir, out=None, lang="tc", brand_path=None, ratio="9x
         f = (plan.get(block) or {}).get("asset_file")
         if not f:
             return None
-        p = os.path.join(asset_dir, f)
+        p = plan_file(asset_dir, f)
         if os.path.isfile(p):
             return p
         warns.append(f"{what} {f!r} not found — rendered without it")
@@ -730,7 +737,7 @@ def render(plan_path, asset_dir, out=None, lang="tc", brand_path=None, ratio="9x
             hot = "#FFFFFF" if near(accent, spec["bg"]) else accent   # accent words vanish on an accent card
             card_at.append((t0, t0 + dur))
         else:
-            path = os.path.join(asset_dir, sc["asset_file"])
+            path = plan_file(asset_dir, sc["asset_file"])
         anim = enum(sc.get("animation"), ANIMATIONS, "none", f"scene {n} animation", warns)
         src_in = float(sc.get("source_in_sec") or 0)
         speed = float(sc.get("speed") or 1)
@@ -776,7 +783,7 @@ def render(plan_path, asset_dir, out=None, lang="tc", brand_path=None, ratio="9x
         fxs = sc.get("sfx") or []                 # "file", or [{file, at}] — at: seconds into the scene
         for fx in [fxs] if isinstance(fxs, str) else fxs:
             f, at = (fx, 0.0) if isinstance(fx, str) else (fx.get("file"), float(fx.get("at", 0)))
-            p = os.path.join(asset_dir, str(f))
+            p = plan_file(asset_dir, str(f))
             if f == "none":
                 continue
             if not os.path.isfile(p):
@@ -886,7 +893,7 @@ def speech_pieces(plan, asset_dir, qc):
     if vo.get("cuts"):
         out = []
         for r in qc.get("voiceover_cuts") or []:
-            ws = words_of(os.path.join(asset_dir, r["src"])) if "src" in r else []
+            ws = words_of(plan_file(asset_dir, r["src"])) if "src" in r else []
             out.append(("".join(w["text"] for w in ws if r["in"] <= w["start"] and w["end"] <= r["out"]),
                         r["at"], r["end"]))
         return out
@@ -979,7 +986,7 @@ def picks(plan_path, asset_dir, cols=5, brand_path=None):
     for i, sc in enumerate(scenes):
         lang = plan.get("lang", "tc")
         path = (card_png(os.path.join(work, f"card{i}.png"), sc, brand_path, lang, build.resolve_faces(lang), warns)
-                if sc.get("kind") == "card" else os.path.join(asset_dir, sc["asset_file"]))
+                if sc.get("kind") == "card" else plan_file(asset_dir, sc["asset_file"]))
         t = float(sc.get("source_in_sec") or 0) + min(0.5, (float(sc["end_sec"]) - float(sc["start_sec"])) / 2)
         if is_still(path):
             im = Image.open(path).convert("RGB")

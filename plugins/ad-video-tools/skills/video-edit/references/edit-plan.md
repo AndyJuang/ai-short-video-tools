@@ -48,7 +48,8 @@ voiceover:                        # optional: only when narration is a separate 
 `render`, `bgm`, `voiceover`, `source_in_sec`, `beat`, `caption.emphasis` and
 `voiceover.lines` are optional. An unknown `caption.style` or `animation` takes a
 fallback and is listed in the QC report's `warnings`. A missing `asset_file` fails
-before anything renders.
+before anything renders. Paths are relative to the material folder and may point into the
+project the render runs from (e.g. `../../assets/sfx/whoosh.wav`), but nowhere else.
 
 With `voiceover.lines`, run `tts.py` on the plan first. Each voiced scene then lasts as
 long as its lines, so those scenes' durations in the timeline are estimates; QC's

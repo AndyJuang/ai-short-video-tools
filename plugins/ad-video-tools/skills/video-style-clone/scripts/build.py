@@ -59,7 +59,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import beats             # noqa: E402  stdlib at import; librosa only in its own uv env
 import index_materials   # noqa: E402  digest(), the same hash materials.json records
-from ffsafe import media  # noqa: E402  refuse playlist/list files posing as media
+from ffsafe import inside, media  # noqa: E402  refuse playlist/list files posing as media
 
 
 def plugin_templates():
@@ -268,13 +268,13 @@ def configure(video, lang=None, ratio=None):
                  f"have: {', '.join(copy_by_lang)}")
     COPY, CAPTIONS = copy_by_lang[LANG], par["captions"]
     MODE, CROP_BAND = par.get("mode", "auto"), par.get("crop_band")
-    MUSIC = os.path.join(vdir, par["music"]) if par.get("music") else None
+    here = lambda f, what: inside(os.path.join(vdir, f), (vdir, PROJ), f"video.json {what} {f!r}")
+    MUSIC = here(par["music"], "music") if par.get("music") else None
     MUSIC_IN = par.get("music_in", 0)
     # src defaults to the video's own directory, so a folder of stills needs no
     # entry at all — the slideshow detector just finds the images.
     src = par.get("src", ".")
-    SRC = ([os.path.join(vdir, s) for s in src] if isinstance(src, list)
-           else os.path.join(vdir, src))
+    SRC = ([here(s, "src") for s in src] if isinstance(src, list) else here(src, "src"))
     SHOTS = par.get("shots")
     if SHOTS is None:
         # No shot list: only a slideshow can supply its own — one shot per
@@ -599,7 +599,7 @@ def still_for(i, a):
     """The image behind shot i: a filename in the shot entry, else the i-th
     still of `src` in filename order (so a numeric in-point is ignored)."""
     if isinstance(a, str):
-        return a if os.path.isabs(a) else os.path.join(VDIR, a)
+        return inside(a if os.path.isabs(a) else os.path.join(VDIR, a), (VDIR, PROJ), f"shot image {a!r}")
     imgs = stills()
     if i >= len(imgs):
         sys.exit(f"shot {i + 1} has no still — {len(imgs)} image(s) in src, "

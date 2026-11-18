@@ -49,6 +49,22 @@ def media(path):
     return path
 
 
+def inside(path, roots, what):
+    """path, if it resolves (symlinks followed) inside one of roots — the material folder or
+    the project — else exit. A plan or video.json may reach into the project's assets/
+    (sound effects, music), but not elsewhere on the machine, such as ~/.ssh or another
+    client's project."""
+    p = os.path.realpath(path)
+    for r in filter(None, roots):
+        r = os.path.realpath(r)
+        try:
+            if os.path.commonpath([r, p]) == r:
+                return path
+        except ValueError:                 # Windows: different drives
+            pass
+    sys.exit(f"{what}: {path} is outside the material folder and the project — refusing to read it")
+
+
 def self_test():
     import tempfile
     d = tempfile.mkdtemp(prefix="ffsafe-test-")
@@ -68,6 +84,25 @@ def self_test():
         except SystemExit:
             continue
         raise AssertionError(f"{name} was accepted")
+    proj, mat = os.path.join(d, "proj"), os.path.join(d, "proj", "input", "v")
+    os.makedirs(os.path.join(proj, "assets"))
+    os.makedirs(mat)
+    roots = (mat, proj)
+    assert inside(os.path.join(mat, "a.mp4"), roots, "t")
+    assert inside(os.path.join(mat, "..", "..", "assets", "s.wav"), roots, "t"), "project assets refused"
+    for bad in (os.path.join(mat, "..", "..", "..", "ok.mp4"), "/etc/hosts", os.path.join(d, "proj2", "x.mp4")):
+        try:
+            inside(bad, roots, "t")
+        except SystemExit:
+            continue
+        raise AssertionError(f"{bad} was accepted")
+    os.symlink(ok, os.path.join(mat, "link.mp4"))          # a link out of the project counts as outside
+    try:
+        inside(os.path.join(mat, "link.mp4"), roots, "t")
+        raise AssertionError("a symlink out of the project was accepted")
+    except SystemExit:
+        pass
+    assert inside(os.path.join(mat, "x.mp4"), (mat, None), "t"), "no project: material folder alone"
     print(f"self-test ok  ({d})")
 
 

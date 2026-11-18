@@ -264,7 +264,9 @@ constants are `references/shorts-output-spec.md`. Follow them; don't restate the
 - **Sound effects.** `sfx` on a scene is one file played at the scene's start, or a
   list `[{file, at}]` (`at`: seconds into the scene) for several — a whoosh on the cut, a pop
   on a caption, a ding on the price. Paths are relative to the material folder like every
-  `asset_file` (init-video keeps a project set in `assets/sfx/`). Keep them sparse: one or two per scene at most.
+  `asset_file` (init-video keeps a project set in `assets/sfx/`, reached as
+  `../../assets/sfx/whoosh.wav` from `input/<video>/`). A plan path may leave the material
+  folder only into the project it is rendered from; anything else is refused. Keep them sparse: one or two per scene at most.
   With no set, fetch the CC0 one (no key): `uv run "${CLAUDE_PLUGIN_ROOT}/skills/video-edit/scripts/sfx.py"
   <project>/assets/sfx` gives `whoosh`, `pop`, `ding` and `click`; a specific sound is
   `--freesound "<words>" --as <name>` (CC0 only, init-video Phase 3d's key). Each file is
