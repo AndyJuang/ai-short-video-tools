@@ -59,6 +59,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import beats             # noqa: E402  stdlib at import; librosa only in its own uv env
 import index_materials   # noqa: E402  digest(), the same hash materials.json records
+from ffsafe import media  # noqa: E402  refuse playlist/list files posing as media
 
 
 def plugin_templates():
@@ -510,7 +511,7 @@ LOUDNESS = "I=-14:TP=-1.5:LRA=11"   # shorts output spec: -14 LUFS, not overrida
 
 def loudnorm_linear(path):
     """Second-pass loudnorm filter from a measuring first pass over `path`."""
-    err = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", path, "-vn", "-af",
+    err = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", media(path), "-vn", "-af",
                           f"loudnorm={LOUDNESS}:print_format=json", "-f", "null", "-"],
                          capture_output=True, encoding="utf-8", errors="replace").stderr
     m = json.loads(err[err.rfind("{"):err.rfind("}") + 1])
@@ -566,7 +567,7 @@ def snap(shots, points, min_shot):
         if resolve_mode() == "video":
             src_dur = float(subprocess.run(
                 ["ffprobe", "-v", "error", "-show_entries", "format=duration",
-                 "-of", "csv=p=0", SRC], capture_output=True, encoding="utf-8", errors="replace").stdout or 0)
+                 "-of", "csv=p=0", media(SRC)], capture_output=True, encoding="utf-8", errors="replace").stdout or 0)
             for i, (a, d) in enumerate(out):
                 if a + d > src_dur:
                     print(f"! shot {i + 1} now runs to {a + d:.2f}s, past the end of "
@@ -637,7 +638,7 @@ def caption_overlay():
 def probe_size(path):
     out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
                           "-show_entries", "stream=width,height",
-                          "-of", "csv=p=0", path],
+                          "-of", "csv=p=0", media(path)],
                          capture_output=True, encoding="utf-8", errors="replace").stdout.strip()
     w, h = (int(x) for x in out.split(",")[:2])
     return w, h
@@ -652,7 +653,7 @@ def has_audio(path):
     """
     return bool(subprocess.run(
         ["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries",
-         "stream=codec_type", "-of", "csv=p=0", path],
+         "stream=codec_type", "-of", "csv=p=0", media(path)],
         capture_output=True, encoding="utf-8", errors="replace").stdout.strip())
 
 
@@ -686,13 +687,13 @@ def build_shot(i, a, dur, cap_png, mode, hits=()):
         # zoompan from stair-stepping.
         pre = (f"[0:v]scale={W}:{VID_H}:force_original_aspect_ratio=increase,"
                f"crop={W}:{VID_H},scale={W * 2}:{VID_H * 2},")
-        inp = ["-loop", "1", "-t", f"{dur}", "-i", still_for(i, a)]
+        inp = ["-loop", "1", "-t", f"{dur}", "-i", media(still_for(i, a))]
     else:
         x0, y0, cw, ch = crop_rect(*probe_size(SRC))
         # fps first: zoompan d=1 emits one frame per input frame, so 60 fps
         # footage would otherwise play at half speed and lose half the shot.
         pre = (f"[0:v]fps={FPS},crop={cw}:{ch}:{x0}:{y0},scale={W * 2}:{VID_H * 2},")
-        inp = ["-ss", f"{a}", "-t", f"{dur}", "-i", SRC]
+        inp = ["-ss", f"{a}", "-t", f"{dur}", "-i", media(SRC)]
     vf = pre + kenburns(i, hits) + "[bg];" + caption_overlay()
     run(["ffmpeg", "-v", "error", "-y", *inp,
          # -t on a looped still is not optional: without it the input never ends
@@ -764,7 +765,7 @@ def main():
                f"fade=t=in:st=0:d=0.4,fade=t=out:st={total - 0.5:.2f}:d=0.5[v]")
     maps = ["-map", "[v]"]
     if bed_:
-        cmd += ["-stream_loop", "-1", "-ss", f"{MUSIC_IN}", "-t", f"{total}", "-i", bed_]
+        cmd += ["-stream_loop", "-1", "-ss", f"{MUSIC_IN}", "-t", f"{total}", "-i", media(bed_)]
         vfilter += (f";[2:a]afade=t=in:d=0.4,afade=t=out:st={total - 0.8:.2f}:d=0.8[a]")
         maps += ["-map", "[a]", "-c:a", "pcm_s16le"]
     master = os.path.join(WORK, "master.mkv")

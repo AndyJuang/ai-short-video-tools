@@ -28,6 +28,8 @@ import subprocess
 import sys
 
 HERE = os.path.abspath(__file__)
+sys.path.insert(0, os.path.dirname(HERE))
+from ffsafe import media  # noqa: E402  refuse playlist/list files posing as media
 WINDOW = 60.0
 EMPTY = {"bpm": 0, "beats": [], "bars": []}
 NOTE = "bars = every 4th beat from the strongest-onset phase, not detected downbeats"
@@ -40,7 +42,7 @@ def analyse(path, start=0.0):
     # what footage and most delivered beds are.
     sr = 22050
     pcm = subprocess.run(["ffmpeg", "-v", "error", "-ss", str(start), "-t", str(WINDOW),
-                          "-i", path, "-vn", "-ac", "1", "-ar", str(sr), "-f", "f32le", "-"],
+                          "-i", media(path), "-vn", "-ac", "1", "-ar", str(sr), "-f", "f32le", "-"],
                          capture_output=True, check=True).stdout
     y = np.frombuffer(pcm, dtype=np.float32)
     if not len(y):

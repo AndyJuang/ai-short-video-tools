@@ -51,6 +51,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "..", "video-style-clone", "scripts"))
 import build  # noqa: E402  font table, fitted(), missing_glyphs(), has_audio(), run()
 import beats  # noqa: E402  grid() runs librosa in its own uv env
+from ffsafe import media  # noqa: E402  refuse playlist/list files posing as media
 
 W, H, FPS = 1080, 1920, 30
 RATIOS = ("9x16", "4x5", "1x1")
@@ -92,7 +93,7 @@ NEAR = 120                            # RGB distance under which two colours rea
 def ffprobe(path):
     out = subprocess.run(["ffprobe", "-v", "error", "-show_entries",
                           "stream=codec_type,width,height,r_frame_rate:format=duration",
-                          "-of", "json", path], capture_output=True, encoding="utf-8",
+                          "-of", "json", media(path)], capture_output=True, encoding="utf-8",
                          errors="replace").stdout
     return json.loads(out or "{}")
 
@@ -264,7 +265,7 @@ def room_tone(vo, asset_dir, work):
     if not os.path.isfile(src):
         sys.exit(f"voiceover.room_tone: {rt.get('src')!r} not found in {asset_dir}")
     a, b = float(rt["in"]), float(rt["out"])
-    return piece(["-ss", f"{a}", "-t", f"{b - a}", "-i", src], b - a, os.path.join(work, "tone.wav"), fade=False)
+    return piece(["-ss", f"{a}", "-t", f"{b - a}", "-i", media(src)], b - a, os.path.join(work, "tone.wav"), fade=False)
 
 
 def cut_track(vo, asset_dir, work, warns):
@@ -278,7 +279,7 @@ def cut_track(vo, asset_dir, work, warns):
         if "pause" in c:
             dur = float(c["pause"])
             if tone:
-                parts.append(piece(["-stream_loop", "-1", "-i", tone], dur, out))
+                parts.append(piece(["-stream_loop", "-1", "-i", media(tone)], dur, out))
             else:
                 warns.append(f"voiceover pause {dur}s is digital silence — set voiceover.room_tone")
                 parts.append(piece(["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"], dur, out))
@@ -289,7 +290,7 @@ def cut_track(vo, asset_dir, work, warns):
             if b <= a:
                 sys.exit(f"voiceover cut {c['src']} {c['in']}–{c['out']}: nothing left after snapping to words")
             dur = b - a
-            parts.append(piece(["-ss", f"{a}", "-t", f"{dur}", "-i", src], dur, out))
+            parts.append(piece(["-ss", f"{a}", "-t", f"{dur}", "-i", media(src)], dur, out))
             rows.append({"src": c["src"], "in": round(a, 3), "out": round(b, 3),
                          "at": round(at, 3), "end": round(at + dur, 3)})
         at += dur
@@ -530,6 +531,7 @@ def segment(i, path, ranges, dur, anim, fade_in, fade_out, clip_gain, work, spee
     still = is_still(path)
     if still:
         ranges, speed = [(0.0, dur)], 1.0
+    path = media(path)
     vin = (["-loop", "1", "-t", f"{dur}", "-i", path] if still
            else [x for a, b in ranges for x in ("-ss", f"{a}", "-t", f"{b - a}", "-i", path)])
     audio, k = not still and build.has_audio(path), len(ranges)
@@ -564,7 +566,7 @@ def segment(i, path, ranges, dur, anim, fade_in, fade_out, clip_gain, work, spee
 
 # ---- QC ---------------------------------------------------------------------
 def loudness(path):
-    err = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", path,
+    err = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", media(path),
                           "-af", "ebur128=peak=true", "-f", "null", "-"],
                          capture_output=True, encoding="utf-8", errors="replace").stderr
     summary = err[err.rfind("Summary:"):]
@@ -803,26 +805,26 @@ def render(plan_path, asset_dir, out=None, lang="tc", brand_path=None, ratio="9x
     idx = len(caps) + 1
     logo = logo_png(os.path.join(work, "logo.png"), brand_path, lang, warns)
     if logo:
-        cmd += ["-loop", "1", "-t", f"{total}", "-i", logo]
+        cmd += ["-loop", "1", "-t", f"{total}", "-i", media(logo)]
         off = "+".join(f"between(t,{a:.3f},{b:.3f})" for a, b in card_at)   # a card carries its own logo
         graph.append(f"{v}[{idx}:v]overlay=0:0:format=auto" + (f":enable='not({off})'" if off else "") + "[vl]")
         v, idx = "[vl]", idx + 1
     graph.append(f"{v}setsar=1,format=yuv420p[v]")
     fg, bgm_in = ["[0:a]"], None
     if bgm:
-        cmd += ["-stream_loop", "-1", "-t", f"{total}", "-i", bgm]
+        cmd += ["-stream_loop", "-1", "-t", f"{total}", "-i", media(bgm)]
         bgm_in = f"[{idx}:a]"
         idx += 1
     if vo:
-        cmd += ["-i", vo]
+        cmd += ["-i", media(vo)]
         fg.append(f"[{idx}:a]")
         idx += 1
     if tone:
-        cmd += ["-stream_loop", "-1", "-t", f"{total}", "-i", tone]
+        cmd += ["-stream_loop", "-1", "-t", f"{total}", "-i", media(tone)]
         fg.append(f"[{idx}:a]")
         idx += 1
     for k, (p, at) in enumerate(sfx + [(p, at) for p, at, _, _ in lines]):
-        cmd += ["-i", p]
+        cmd += ["-i", media(p)]
         ms = round(at * 1000)
         graph.append(f"[{idx}:a]adelay={ms}|{ms}[sfx{k}]")
         fg.append(f"[sfx{k}]")
@@ -983,7 +985,7 @@ def picks(plan_path, asset_dir, cols=5, brand_path=None):
             im = Image.open(path).convert("RGB")
         else:
             png = os.path.join(work, f"{i}.png")
-            build.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t}", "-i", path, "-frames:v", "1", png])
+            build.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t}", "-i", media(path), "-frames:v", "1", png])
             im = Image.open(png).convert("RGB")
         s = max(tw / im.width, th / im.height)
         im = im.resize((math.ceil(im.width * s), math.ceil(im.height * s)))

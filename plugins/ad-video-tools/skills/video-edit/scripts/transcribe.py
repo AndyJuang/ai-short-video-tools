@@ -33,6 +33,10 @@ import tempfile
 import urllib.request
 import uuid
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "..", "..", "video-style-clone", "scripts"))
+from ffsafe import media as plain_media  # noqa: E402  refuse playlist/list files posing as media
+
 API = "https://api.elevenlabs.io/v1/speech-to-text"
 LANGS = {"tc": "zho", "sc": "zho", "jp": "jpn", "ko": "kor", "en": "eng"}   # ISO 639-3
 CJK = "぀-ヿ㐀-鿿가-힯"
@@ -221,7 +225,7 @@ def run(media, lang=None, out=None, resp=None):
             key = load_key()
             with tempfile.TemporaryDirectory() as tmp:     # private dir: no race on a shared /tmp
                 wav = os.path.join(tmp, "audio.wav")
-                subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", media, "-vn", "-ac", "1", "-ar", "16000", wav],
+                subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", plain_media(media), "-vn", "-ac", "1", "-ar", "16000", wav],
                                check=True)
                 resp = scribe(wav, key, LANGS.get(lang, lang))
         words = words_of(resp)

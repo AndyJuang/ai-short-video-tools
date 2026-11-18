@@ -42,6 +42,9 @@ import sys
 import tempfile
 from datetime import datetime, timezone
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from ffsafe import check, media  # noqa: E402  refuse playlist/list files posing as media
+
 MEDIA_EXT = (".mp4", ".mov", ".m4v", ".avi", ".mkv", ".webm",
              ".jpg", ".jpeg", ".png", ".webp", ".heic", ".tif", ".tiff",
              ".mp3", ".wav", ".m4a", ".aac")
@@ -86,7 +89,10 @@ def digest(path):
 
 
 def probe(path):
-    """Duration and resolution, from ffprobe or — for stills — from Pillow."""
+    """Duration and resolution, from ffprobe or — for stills — from Pillow.
+    Nothing for a file ffsafe won't pass: it is indexed, never opened by ffmpeg."""
+    if check(path):
+        return {}
     out = subprocess.run(
         ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
          "stream=width,height:format=duration", "-of", "default=nw=1:nk=1", path],
@@ -117,7 +123,7 @@ def sheet(vdir, name, dur, cols=6, max_tiles=36):
     full = os.path.join(vdir, name)
     step = max(1, math.ceil(dur / max_tiles))
     tmp = tempfile.mkdtemp()
-    subprocess.run(["ffmpeg", "-v", "error", "-i", full, "-vf", f"fps=1/{step},scale=240:-2",
+    subprocess.run(["ffmpeg", "-v", "error", "-i", media(full), "-vf", f"fps=1/{step},scale=240:-2",
                     os.path.join(tmp, "%03d.png")], capture_output=True)
     frames = sorted(glob.glob(os.path.join(tmp, "*.png")))
     if not frames:

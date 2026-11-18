@@ -32,6 +32,7 @@ from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import beats  # noqa: E402  runs librosa in its own uv env
+from ffsafe import media  # noqa: E402  refuse playlist/list files posing as media
 
 
 def sh(args):
@@ -41,7 +42,7 @@ def sh(args):
 
 def probe(path):
     out = sh(["ffprobe", "-v", "error", "-print_format", "json",
-              "-show_format", "-show_streams", path])
+              "-show_format", "-show_streams", media(path)])
     d = json.loads(out)
     v = next(s for s in d["streams"] if s["codec_type"] == "video")
     a = next((s for s in d["streams"] if s["codec_type"] == "audio"), None)
@@ -63,7 +64,7 @@ def aspect(w, h):
 def contact_sheet(path, dst, dur, cols=6, rows=5):
     """One tile per second-ish, sized to cover the whole clip."""
     step = max(1, round(dur / (cols * rows)))
-    sh(["ffmpeg", "-v", "error", "-y", "-i", path,
+    sh(["ffmpeg", "-v", "error", "-y", "-i", media(path),
         "-vf", f"fps=1/{step},scale=250:-1,tile={cols}x{rows}",
         "-frames:v", "1", dst])
     return step
@@ -72,14 +73,14 @@ def contact_sheet(path, dst, dur, cols=6, rows=5):
 def scene_cuts(path, threshold=0.25):
     """Through -i and showinfo, not a movie= source: a filtergraph cannot hold a
     Windows path, whose drive colon reads as an option separator."""
-    p = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", path, "-an",
+    p = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", media(path), "-an",
                         "-vf", f"select='gt(scene,{threshold})',showinfo", "-f", "null", "-"],
                        capture_output=True, encoding="utf-8", errors="replace")
     return [float(t) for t in re.findall(r"pts_time:([\d.]+)", p.stderr)]
 
 
 def loudness(path):
-    p = subprocess.run(["ffmpeg", "-hide_banner", "-i", path,
+    p = subprocess.run(["ffmpeg", "-hide_banner", "-i", media(path),
                         "-af", "volumedetect", "-f", "null", "-"],
                        capture_output=True, encoding="utf-8", errors="replace")
     vals = {}
@@ -130,7 +131,7 @@ def static_regions(path, dur, samples=8, grid=24):
     for i in range(samples):
         t = dur * (i + 0.5) / samples
         tmp = os.path.join(tmpdir, f"{i}.png")
-        sh(["ffmpeg", "-v", "error", "-y", "-ss", f"{t:.2f}", "-i", path,
+        sh(["ffmpeg", "-v", "error", "-y", "-ss", f"{t:.2f}", "-i", media(path),
             "-frames:v", "1", "-vf", f"scale={grid * 2}:{grid * 2}", tmp])
         if os.path.exists(tmp):
             frames.append(Image.open(tmp).convert("L").load())
@@ -180,7 +181,7 @@ def main():
 
     frame = os.path.join(args.out, "ref_frame.png")
     sh(["ffmpeg", "-v", "error", "-y", "-ss", f"{ref['dur'] * 0.6:.2f}",
-        "-i", args.reference, "-frames:v", "1", frame])
+        "-i", media(args.reference), "-frames:v", "1", frame])
     sheet = os.path.join(args.out, "ref_sheet.jpg")
     step = contact_sheet(args.reference, sheet, ref["dur"])
     print(f"  frame  -> {frame}")

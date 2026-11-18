@@ -35,6 +35,7 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from transcribe import find_key, load_key, writable  # noqa: E402
+from ffsafe import media  # noqa: E402  (transcribe put its folder on sys.path)
 
 REPO = "lavenderdotpet/CC0-Public-Domain-Sounds"
 SHA = "f2b6264f9ab89fabc266914c3654685d68c5a39b"
@@ -62,12 +63,12 @@ def to_wav(raw, dest):
         f.write(raw)
     try:
         fmt = "aformat=sample_rates=48000:channel_layouts=stereo"   # upmix first: it drops mono 3 dB
-        log = subprocess.run(["ffmpeg", "-i", f.name, "-af", f"{fmt},volumedetect", "-f", "null", "-"],
+        log = subprocess.run(["ffmpeg", "-i", media(f.name), "-af", f"{fmt},volumedetect", "-f", "null", "-"],
                              capture_output=True, text=True).stderr
         m = re.search(r"max_volume: (-?[\d.]+) dB", log)
         if not m:
             sys.exit(f"not audio ffmpeg can read: {os.path.basename(dest)}")
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", f.name, "-af", f"{fmt},volume={PEAK - float(m[1]):.2f}dB", dest],
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", media(f.name), "-af", f"{fmt},volume={PEAK - float(m[1]):.2f}dB", dest],
                        check=True)
     finally:
         os.unlink(f.name)

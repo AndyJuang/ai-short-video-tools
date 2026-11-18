@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# ///
+"""Gate for material files before ffmpeg or ffprobe opens them.
+
+ffmpeg picks the demuxer from a file's content, not its name. A "clip.mp4" from a
+client or a download can be an HLS playlist or a concat list, and then ffmpeg reads
+whatever files or URLs it names into the render. media(path) probes the file with
+local files only and passes it on only if it is a plain media container or image.
+
+    from ffsafe import media
+    subprocess.run(["ffmpeg", "-i", media(path), ...])
+
+Only material goes through this: files the scripts write themselves (concat lists,
+caption PNGs, intermediate masters) and lavfi sources are not gated.
+
+    uv run ffsafe.py --self-test
+"""
+import functools
+import os
+import subprocess
+import sys
+
+# Demuxer names as ffprobe reports them (format=format_name, split on commas).
+ALLOWED = {"mov", "mp4", "m4a", "3gp", "3g2", "mj2", "matroska", "webm", "avi", "mpegts",
+           "mpeg", "flv", "asf", "wav", "w64", "aiff", "mp3", "aac", "flac", "ogg", "caf",
+           "image2", "png_pipe", "jpeg_pipe", "webp_pipe", "bmp_pipe", "tiff_pipe", "gif"}
+
+
+@functools.cache
+def check(path):
+    """None if ffprobe reads path as plain media, else the reason it doesn't."""
+    r = subprocess.run(["ffprobe", "-v", "error", "-protocol_whitelist", "file",
+                        "-show_entries", "format=format_name", "-of", "csv=p=0", path],
+                       capture_output=True, encoding="utf-8", errors="replace")
+    names = set(r.stdout.strip().strip('"').split(",")) - {""}
+    if r.returncode or not names & ALLOWED:
+        return ",".join(sorted(names)) or (r.stderr.strip().splitlines() or ["unreadable"])[-1]
+    return None
+
+
+def media(path):
+    """path, if ffprobe reads it as plain media; otherwise exit with the reason."""
+    why = check(path)
+    if why:
+        sys.exit(f"{path}: not plain media ({why}) — a playlist or list file could make "
+                 f"ffmpeg read other files into the render; refusing it")
+    return path
+
+
+def self_test():
+    import tempfile
+    d = tempfile.mkdtemp(prefix="ffsafe-test-")
+    ok = os.path.join(d, "ok.mp4")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=d=1", ok], check=True)
+    assert media(ok) == ok
+    still = os.path.join(d, "still.jpg")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=d=1", "-frames:v", "1", still],
+                   check=True)
+    assert media(still) == still
+    for name, body in (("list.mp4", "ffconcat version 1.0\nfile 'ok.mp4'\n"),
+                       ("playlist.mp4", "#EXTM3U\n#EXT-X-TARGETDURATION:1\n#EXTINF:1,\nok.mp4\n#EXT-X-ENDLIST\n")):
+        p = os.path.join(d, name)
+        open(p, "w").write(body)
+        try:
+            media(p)
+        except SystemExit:
+            continue
+        raise AssertionError(f"{name} was accepted")
+    print(f"self-test ok  ({d})")
+
+
+if __name__ == "__main__":
+    if sys.argv[1:] == ["--self-test"]:
+        self_test()
+    else:
+        for p in sys.argv[1:]:
+            print(media(p))
