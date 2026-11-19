@@ -49,7 +49,9 @@ beat, stills punch in, hooks pop. Captions can type on or pop in (`fx`); stills 
 whip-pan or shake; a scene can jump-cut between source ranges, change speed, and carry
 several timed sound effects. `sfx.py` fetches a CC0 starter set (whoosh, pop, ding, click)
 from a pinned public-domain repo, or a named CC0 sound from Freesound, and records each
-file's licence and source in `SOURCES.txt`.
+file's licence and source in `SOURCES.txt`. BGM is the user's own track or, by default,
+one they download from [OpenTracks](https://opentracks.com/) (free, commercial use, no
+credit), logged in `assets/bgm/SOURCES.txt`.
 A storyboard — video-storyboard's cut table, any other table, storyboard frames, or one
 drafted from a brief — becomes an edit plan with `storyboard.py`: timings, captions,
 narration lines and the end card, with footage left to pick or every cut a generated still.

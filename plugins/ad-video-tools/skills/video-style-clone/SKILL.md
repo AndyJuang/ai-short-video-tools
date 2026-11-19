@@ -186,7 +186,9 @@ slideshow, means slides mode — leave `src` unset (it defaults to the video's o
 directory) and the build detects it. Stills get the same ken-burns push-in as
 footage, so the result moves; what it does not have is audio, so a slideshow needs
 `music` or it ships silent. Decide which, and say which — a silently silent ad is
-a bug report waiting to happen. Footage plays over its own sound unless `music`
+a bug report waiting to happen. For a bed, ask whether the user already has one or
+wants one from OpenTracks — the default source; video-edit's "Music" bullet has the
+rules. Footage plays over its own sound unless `music`
 is set, which replaces it. `music_in` skips a bed's intro (seconds, default 0). Footage with no audio track is caught at build
 time and reported, not guessed at.
 

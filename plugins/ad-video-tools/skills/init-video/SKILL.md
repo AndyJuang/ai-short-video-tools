@@ -135,7 +135,8 @@ and any language block that is not in scope.
 ## Phase 2 — Place the files
 
 Logos into `assets/`, brand fonts into the user font folder for the OS (table above),
-music beds into `assets/`.
+music beds into `assets/bgm/`. Ask whether the client has BGM; if not, the default source
+is OpenTracks, picked per cut (video-edit, "Music").
 
 For SNS cuts, ask whether the client has a sound-effect set; if so, put it in `assets/sfx/`
 with plain names (`whoosh.wav`, `pop.wav`, `ding.wav`). If not, fetch the CC0 starter set
