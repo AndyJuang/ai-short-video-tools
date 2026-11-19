@@ -43,8 +43,8 @@ If cwd already holds a `brand.json`, offer to update it instead of re-scaffoldin
 it before asking anything the file already answers.
 
 ```bash
-mkdir -p input output assets
-touch input/.gitkeep output/.gitkeep assets/.gitkeep   # empty dirs survive a clone
+mkdir -p input output assets/bgm
+touch input/.gitkeep output/.gitkeep assets/.gitkeep assets/bgm/.gitkeep   # empty dirs survive a clone
 cp "${CLAUDE_PLUGIN_ROOT}/skills/video-style-clone/assets/brand.example.json" ./brand.json
 cp "${CLAUDE_PLUGIN_ROOT}/skills/init-video/assets/project.gitignore" ./.gitignore
 [ -e .env ] || { cp "${CLAUDE_PLUGIN_ROOT}/skills/init-video/assets/project.env" ./.env; chmod 600 .env; }
@@ -68,7 +68,8 @@ commit can't pick it up. An existing `.env` is never overwritten.
 | `input/<video>/` | one directory per video: its materials **and** its `video.json` | params tracked, media ignored |
 | `input/<video>/materials.json` | what each material was: duration, size, hash, Drive link | tracked |
 | `output/<video>.<lang>.mp4` | the renders, named after the input directory | ignored |
-| `assets/` | logo PNGs (tracked) and music beds (ignored) | mixed |
+| `assets/` | logo PNGs (tracked) | mixed |
+| `assets/bgm/` | music beds (ignored) and `SOURCES.txt`, where each came from (tracked) | mixed |
 | `build/` | render scratch, one dir per video per language | ignored |
 | `templates/` | layouts measured for *this* client, if any | tracked |
 
@@ -135,8 +136,8 @@ and any language block that is not in scope.
 ## Phase 2 — Place the files
 
 Logos into `assets/`, brand fonts into the user font folder for the OS (table above),
-music beds into `assets/bgm/`. Ask whether the client has BGM; if not, the default source
-is OpenTracks, picked per cut (video-edit, "Music").
+music beds into `assets/bgm/`. Ask whether the client has BGM; if not, OpenTracks is the
+default source — the user downloads each track themselves (video-edit, "Music").
 
 For SNS cuts, ask whether the client has a sound-effect set; if so, put it in `assets/sfx/`
 with plain names (`whoosh.wav`, `pop.wav`, `ding.wav`). If not, fetch the CC0 starter set

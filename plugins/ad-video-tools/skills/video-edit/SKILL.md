@@ -270,11 +270,14 @@ constants are `references/shorts-output-spec.md`. Follow them; don't restate the
 - **Music.** Before writing `bgm`, ask: "Do you already have a BGM track, or should I
   pick one from OpenTracks?" Never pick for them, and never fetch music from anywhere else.
   Their own file: put it in `<project>/assets/bgm/`. OpenTracks (opentracks.com, free
-  Japanese library, commercial use and ads allowed, no credit needed): suggest two or three
-  mood / tempo tags that fit the plan (明るい, 速い, ポップ…), the user previews and downloads
-  with the track page's download button — no scripted downloads, the terms forbid bots and
-  direct file links. Put it in `assets/bgm/` and add a line to `assets/bgm/SOURCES.txt`:
-  file, track page URL, composer, date. A composer's own terms override the site's; never
+  Japanese library, commercial use and ads allowed, no credit needed): suggest three tracks
+  as links. Read a tag listing that fits the plan's mood — `opentracks.com/bgm/category/bright/`
+  is 明るい; take other tags' links from the home page's tag list rather than guessing slugs —
+  and give each pick as `https://opentracks.com/bgm/detail/<id>` with title, composer, length
+  and one line on why it fits. A listing's length can be a preview's; check the track page
+  that it covers the cut. The user previews and downloads (MP3) — never download it yourself:
+  the terms forbid bots and direct file links. Once it's in `assets/bgm/`, add a line to
+  `assets/bgm/SOURCES.txt`: file, track page URL, composer, date. A composer's own terms override the site's; never
   register the cut with Content ID. Then `bgm: {mood, asset_file}` points at it.
 - **Sound effects.** `sfx` on a scene is one file played at the scene's start, or a
   list `[{file, at}]` (`at`: seconds into the scene) for several — a whoosh on the cut, a pop

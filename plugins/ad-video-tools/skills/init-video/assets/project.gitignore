@@ -18,6 +18,10 @@ assets/*
 !assets/*.png
 !assets/*.svg
 !assets/.gitkeep
+!assets/bgm/
+assets/bgm/*
+!assets/bgm/.gitkeep
+!assets/bgm/SOURCES.txt
 
 # Stray media at the root — footage belongs in input/, brand marks in assets/.
 /*.mp4
