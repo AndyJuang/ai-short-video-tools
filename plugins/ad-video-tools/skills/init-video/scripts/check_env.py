@@ -114,9 +114,19 @@ def check_project():
             fail(f".gitignore swallows {probe} — that is the record git is here to keep")
     if os.path.exists(".env") and not ignored(".env"):
         fail(".env is not gitignored — its API keys would be committed; add `.env` to .gitignore")
-    if ignored("input/x/edit_plan.yaml"):     # warn: projects scaffolded before /video-edit
-        warn(".gitignore swallows input/*/edit_plan.yaml (video-edit's plan) — "
-             "add `!input/**/edit_plan.yaml` under the materials.json line")
+    # warn, not fail: projects scaffolded before /video-edit, /new-video or the sfx starter set
+    for probe, what, line in (
+            ("input/x/edit_plan.yaml", "video-edit's plan", "`!input/**/edit_plan.yaml`"),
+            ("input/x/storyboard.md", "video-edit's storyboard", "`!input/**/storyboard.md`"),
+            ("input/x/brief.md", "new-video's brief", "`!input/**/brief.md`"),
+            ("assets/sfx/SOURCES.txt", "the sound effects' licences",
+             "`!assets/sfx/`, `assets/sfx/*`, `!assets/sfx/SOURCES.txt`"),
+            ("assets/bgm/SOURCES.txt", "the music's sources",
+             "`!assets/bgm/`, `assets/bgm/*`, `!assets/bgm/SOURCES.txt`")):
+        if ignored(probe):
+            warn(f".gitignore swallows {probe} ({what}) — add {line}")
+    if not ignored("assets/sfx/whoosh.wav"):
+        fail(".gitignore does not cover assets/sfx/whoosh.wav — sound effects would be committed")
 
 
 def load_brand(path="brand.json"):

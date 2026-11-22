@@ -46,7 +46,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ffsafe import check, media  # noqa: E402  refuse playlist/list files posing as media
 
 MEDIA_EXT = (".mp4", ".mov", ".m4v", ".avi", ".mkv", ".webm",
-             ".jpg", ".jpeg", ".png", ".webp", ".heic", ".tif", ".tiff",
+             ".jpg", ".jpeg", ".png", ".webp", ".heic", ".tif", ".tiff", ".jxl", ".avif",  # = build.IMAGE_EXT
              ".mp3", ".wav", ".m4a", ".aac")
 INDEX = "materials.json"
 RENDERS = "renders"          # the one top-level key that is not a material
@@ -93,14 +93,19 @@ def probe(path):
     Nothing for a file ffsafe won't pass: it is indexed, never opened by ffmpeg."""
     if check(path):
         return {}
-    out = subprocess.run(
+    j = json.loads(subprocess.run(
         ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
-         "stream=width,height:format=duration", "-of", "default=nw=1:nk=1", path],
-        capture_output=True, encoding="utf-8", errors="replace").stdout.split()
+         "stream=width,height:stream_side_data=rotation:format=duration", "-of", "json", path],
+        capture_output=True, encoding="utf-8", errors="replace").stdout or "{}")
+    st = (j.get("streams") or [{}])[0]
     info = {}
-    if len(out) >= 2 and out[0].isdigit():
-        info["res"] = f"{out[0]}x{out[1]}"
-    dur = next((v for v in out if "." in v), None)
+    if st.get("width"):
+        w, h = st["width"], st["height"]
+        # as displayed: a phone clip stored landscape with a ±90° flag plays upright
+        if any(abs(d.get("rotation", 0)) == 90 for d in st.get("side_data_list", [])):
+            w, h = h, w
+        info["res"] = f"{w}x{h}"
+    dur = (j.get("format") or {}).get("duration")
     if dur and float(dur) > 0:
         info["dur"] = round(float(dur), 2)
     if "res" not in info:
@@ -158,13 +163,21 @@ def index(vdir, sheets=False):
         rec.update(bytes=os.path.getsize(full), sha=digest(full), present=True,
                    **probe(full))
         if sheets and name.lower().endswith(VIDEO_EXT) and rec.get("dur") and not (
-                rec["sha"] == was and os.path.exists(os.path.join(vdir, rec.get("sheet", "")))):
+                # isfile: with no "sheet" key yet, the join is vdir itself, which exists
+                rec["sha"] == was and os.path.isfile(os.path.join(vdir, rec.get("sheet", "")))):
             rec.update(sheet(vdir, name, rec["dur"]))
         rec.setdefault("source", "")          # paste the Drive link here
         entries[name] = rec
     gone = [n for n, r in entries.items() if not r["present"]]
     print(f"{path}: {len(entries) - len(gone)} present"
           + (f", {len(gone)} recorded but missing ({', '.join(gone)})" if gone else ""))
+    if sheets:
+        wide = [n for n, r in entries.items() if r["present"] and n.lower().endswith(VIDEO_EXT)
+                and "x" in r.get("res", "") and int(r["res"].split("x")[0]) > int(r["res"].split("x")[1])]
+        if wide:
+            print(f"  landscape, check the sheet: {', '.join(wide)} — a clip filmed upright but saved "
+                  "without a rotation flag shows people on their side; a real wide shot loses its "
+                  "sides in a 9:16 crop")
     unsourced = [n for n, r in entries.items() if r["present"] and not r["source"]]
     if unsourced:
         print(f"  no source link yet: {', '.join(unsourced)}")
@@ -229,12 +242,23 @@ def self_test():
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=red:s=320x568:r=30:d=2",
                     "-f", "lavfi", "-i", "color=blue:s=320x568:r=30:d=3", "-filter_complex",
                     "concat=n=2:v=1:a=0", "-pix_fmt", "yuv420p", os.path.join(d, "take1.mp4")], check=True)
+    index(d)                                  # new-video indexes first; video-edit asks for sheets later
     rec = index(d, sheets=True)["take1.mp4"]
     assert os.path.exists(os.path.join(d, rec["sheet"])), "no contact sheet"
     assert rec["sheet_step"] == 1 and any(abs(c - 2.0) < 0.1 for c in rec["cuts"]), rec
     mtime = os.path.getmtime(os.path.join(d, rec["sheet"]))
     index(d, sheets=True)
     assert os.path.getmtime(os.path.join(d, rec["sheet"])) == mtime, "unchanged clip re-sheeted"
+    # a phone clip: stored landscape, flagged to play upright — res is what it displays
+    flat, phone = os.path.join(d, "flat.tmp"), os.path.join(d, "phone.mp4")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=red:s=568x320:d=1",
+                    "-f", "mp4", flat], check=True)
+    if subprocess.run(["ffmpeg", "-v", "error", "-y", "-display_rotation", "90", "-i", flat,
+                       "-c", "copy", phone]).returncode:       # -display_rotation is ffmpeg 7+
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", flat, "-c", "copy",
+                        "-metadata:s:v:0", "rotate=90", phone], check=True)
+    os.remove(flat)
+    assert index(d)["phone.mp4"]["res"] == "320x568", "rotation flag ignored"
     print("self-test ok")
 
 

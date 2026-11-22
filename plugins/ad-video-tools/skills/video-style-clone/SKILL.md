@@ -50,7 +50,10 @@ the layout above is what `build.py` expects.
 Then pick the video's name. It is the input directory, the output filename and the
 thing everyone will refer to it by afterwards, so use a slug of the campaign, not
 `video1`. An existing directory under `input/` means another cut of something
-already built — read its `video.json` first.
+already built — read its `video.json` first. The exception is a directory with a
+`brief.md` and no `video.json`: the new-video skill set it up. Its name is the slug, and
+the brief gives the reference (`ref.*` in the folder) or template, the ratios and the
+languages; don't ask those again.
 
 ## Phase 1 — Is this layout already known?
 

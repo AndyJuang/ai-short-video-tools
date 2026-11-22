@@ -319,8 +319,6 @@ sounds, which needs a free key. Skip this until a plan asks for such a sound.
 
 ## Phase 4 — Hand off
 
-Say what is set and what is still `TBD` (including speech and generated stills and clips, if Phase 3b or 3c was skipped or a narrator is missing), then point at `/video-style-clone` with what it
-still needs: a name for the video, a reference (or the name of a saved template), the
-footage or stills, and the target languages. If the user has a plan or storyboard and raw
-footage rather than a reference ad, point at `/video-edit` instead: the plan and the
-footage folder.
+Say what is set and what is still `TBD` (including speech and generated stills and clips, if Phase 3b or 3c was skipped or a narrator is missing), then point at `/new-video` to start
+the first video: it names it, takes in the plan or reference ad and the footage, and hands
+off to `/video-edit` or `/video-style-clone`.

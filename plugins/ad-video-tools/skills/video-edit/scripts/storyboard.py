@@ -79,7 +79,8 @@ def panel_prompts(md):
 def split_memo(memo):
     """(caption text, narration) from a memo cell. Labelled parts ('テキスト：…／ナレ：…') split;
     an unlabelled memo is all caption."""
-    memo = memo.replace("<br>", "\n").strip()
+    # a line break inside a table cell: <br>, or a typed \n (the form a YAML caption uses)
+    memo = memo.replace("<br>", "\n").replace("\\n", "\n").strip()
     parts = LABEL.split(memo)
     if len(parts) < 3:
         return memo.strip(QUOTES + " ") or None, None
@@ -150,6 +151,8 @@ def self_test():
     assert t[3]["kind"] == "card" and t[3]["caption"]["style"] == "cta" and "asset_file" not in t[3], t[3]
     assert all(s.get("asset_file", "x") is None for s in t[:3]), "footage must be left for picking"
     assert p["export_checklist"] == ["比例：9:16"], p["export_checklist"]
+    assert split_memo("テキスト：「配合身體狀況的\\nA.P. 平衡技術」")[0] == "配合身體狀況的\nA.P. 平衡技術"
+    assert split_memo("你也是每年<br>夏天都曬傷嗎？")[0] == "你也是每年\n夏天都曬傷嗎？"
     g, _ = plan_of(md, "t", generate=True)
     gt = g["timeline"]
     assert gt[0]["asset_file"] == "gen/01.jpg" and gt[0]["generate"]["prompt"].startswith("A sunlit"), gt[0]

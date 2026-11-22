@@ -23,6 +23,8 @@ A cut count and length other than 9 × 1.7 s are fine.
   On footage this is a starting point: a clip that already moves wants `none`.
 - **Memo** → caption. Labelled parts split: `テキスト／字幕／字卡／Text:` is the caption,
   `ナレ／旁白／口白／VO:` is a `voiceover.lines` entry for `tts.py`. Unlabelled is all caption.
+  A forced line break inside a caption is `<br>` (or `\n`) in the cell; otherwise the
+  renderer wraps long captions itself.
 - **Last cut naming a logo or CTA** → `kind: card` with the memo as its `cta` caption
   (brand.json `card` fills the rest).
 - **Picture** → the scene's `brief`: what Phase 3 picks footage for.

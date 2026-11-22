@@ -5,6 +5,7 @@ your language, your brand.
 
 ```
 /init-video <folder>          set the client up once — scaffold, git, brand, logos, fonts, CC0 sound effects, optional ElevenLabs/Gemini/Freesound keys
+/new-video                    start each video — name it, take in the plan or reference, copy footage, sfx and music into place
 /video-style-clone <folder>   then clone a reference and build
 /video-edit <plan> <folder>   or cut a regular video from a plan, picking the footage
 ```
@@ -129,6 +130,9 @@ skills/init-video/
   assets/project.gitignore     the media/params line, copied into the project
   assets/project.env           the optional API keys as {Placeholder} lines, copied into the project
   scripts/check_env.py         ffmpeg, Pillow, scaffold, gitignore, logo alpha, font glyphs
+
+skills/new-video/
+  SKILL.md                     one new input/<video>/: name, edit path, brief.md, plan or reference, assets in, index, commit, hand off
 
 skills/video-edit/
   SKILL.md                     plan → picks → edit plan → render, phase by phase

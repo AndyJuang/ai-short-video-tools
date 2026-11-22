@@ -36,7 +36,11 @@ project. Fix what fails before reading anything.
 | any other folder | that folder | beside the material | beside the plan |
 
 In an init-video project pick the `<video>` slug the way video-style-clone Phase 0
-does, and pass that name (not a path) to `index_materials.py`.
+does, and pass that name (not a path) to `index_materials.py`. If `input/<video>/brief.md`
+exists, the new-video skill set the folder up: the brief names the plan file, the ratios,
+the languages and the length, and the material is already in place and indexed. With
+`plan: to draft from this brief`, Phase 1 is the "Only a brief" row of
+`references/storyboard.md`, drafted from the brief's Brief section.
 
 ## Phase 1 — Find the plan
 
@@ -86,7 +90,9 @@ every still as an image, and every `.cues.json` — the right take is often the 
 name. For each file note what it shows, which seconds are usable, and what is
 wrong with the rest: shake, focus hunting, blown or crushed exposure, the camera
 being set down, burned-in text or watermarks, a horizontal frame that loses the
-subject in a 9:16 crop (output is cover-cropped to the centre).
+subject in a 9:16 crop (output is cover-cropped to the centre), a clip filmed upright but
+saved sideways (people lying on their side in the sheet; `--sheets` names every landscape clip
+to check).
 
 ## Phase 3 — Pick
 

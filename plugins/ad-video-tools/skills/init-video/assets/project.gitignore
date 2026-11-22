@@ -5,6 +5,8 @@ input/**
 !input/**/video.json
 !input/**/materials.json
 !input/**/edit_plan.yaml
+!input/**/storyboard.md
+!input/**/brief.md
 !input/.gitkeep
 
 # Renders and scratch. Rebuildable from the params above.
@@ -22,6 +24,9 @@ assets/*
 assets/bgm/*
 !assets/bgm/.gitkeep
 !assets/bgm/SOURCES.txt
+!assets/sfx/
+assets/sfx/*
+!assets/sfx/SOURCES.txt
 
 # Stray media at the root — footage belongs in input/, brand marks in assets/.
 /*.mp4
