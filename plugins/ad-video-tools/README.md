@@ -110,7 +110,7 @@ macOS, Windows or Linux.
 
 | | macOS | Windows | Linux |
 |---|---|---|---|
-| `ffmpeg` / `ffprobe` on PATH | `brew install ffmpeg` | `winget install Gyan.FFmpeg` | `sudo apt install ffmpeg` |
+| `ffmpeg` / `ffprobe` on PATH | `brew install ffmpeg-full` (found automatically; plain `ffmpeg` lacks HDR tone mapping and .jxl) | `winget install Gyan.FFmpeg` | `sudo apt install ffmpeg` |
 | `uv` (installs each script's Python deps) | `brew install uv` | `winget install astral-sh.uv` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | user font folder | `~/Library/Fonts` | `%LOCALAPPDATA%\Microsoft\Windows\Fonts` | `~/.local/share/fonts` |
 

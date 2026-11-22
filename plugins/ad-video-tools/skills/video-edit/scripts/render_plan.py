@@ -51,7 +51,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "..", "video-style-clone", "scripts"))
 import build  # noqa: E402  font table, fitted(), missing_glyphs(), has_audio(), run()
 import beats  # noqa: E402  grid() runs librosa in its own uv env
-from ffsafe import inside, media  # noqa: E402  refuse playlist/list files posing as media
+from ffsafe import inside, media, sdr  # noqa: E402  refuse playlist/list files posing as media; HDR->SDR
 
 W, H, FPS = 1080, 1920, 30
 RATIOS = ("9x16", "4x5", "1x1")
@@ -544,7 +544,7 @@ def segment(i, path, ranges, dur, anim, fade_in, fade_out, clip_gain, work, spee
     audio, k = not still and build.has_audio(path), len(ranges)
     # setpts then fps, both before zoompan: zoompan d=1 emits one frame per input frame,
     # so a 60 fps or sped-up source would otherwise play at the wrong speed.
-    pre = [f"[{j}:v]setpts=(PTS-STARTPTS)/{speed},fps={FPS}[v{j}]" for j in range(k)]
+    pre = [f"[{j}:v]{sdr(path)}setpts=(PTS-STARTPTS)/{speed},fps={FPS}[v{j}]" for j in range(k)]
     pre += [f"[{j}:a]atempo={speed},asetpts=PTS-STARTPTS[a{j}]" for j in range(k) if audio]
     pre.append("".join(f"[v{j}]" + f"[a{j}]" * audio for j in range(k))
                + f"concat=n={k}:v=1:a={int(audio)}[cv]" + "[ca]" * audio)
@@ -816,7 +816,8 @@ def render(plan_path, asset_dir, out=None, lang="tc", brand_path=None, ratio="9x
         off = "+".join(f"between(t,{a:.3f},{b:.3f})" for a, b in card_at)   # a card carries its own logo
         graph.append(f"{v}[{idx}:v]overlay=0:0:format=auto" + (f":enable='not({off})'" if off else "") + "[vl]")
         v, idx = "[vl]", idx + 1
-    graph.append(f"{v}setsar=1,format=yuv420p[v]")
+    # BT.709 tags in the graph, not as -color_* flags: ffmpeg 9 takes them from the frames
+    graph.append(f"{v}setsar=1,format=yuv420p,setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709[v]")
     fg, bgm_in = ["[0:a]"], None
     if bgm:
         cmd += ["-stream_loop", "-1", "-t", f"{total}", "-i", media(bgm)]

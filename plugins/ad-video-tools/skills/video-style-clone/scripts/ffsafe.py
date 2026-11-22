@@ -22,10 +22,31 @@ import os
 import subprocess
 import sys
 
+# Homebrew's `ffmpeg` leaves out zimg (zscale, needed to tone-map HDR) and libjxl. The
+# keg-only `ffmpeg-full` has both; put it first on PATH so every ffmpeg/ffprobe this
+# process starts is that one. Every script that runs ffmpeg imports this module.
+for _keg in ("/opt/homebrew/opt/ffmpeg-full/bin", "/usr/local/opt/ffmpeg-full/bin",
+             "/home/linuxbrew/.linuxbrew/opt/ffmpeg-full/bin"):
+    if os.path.isdir(_keg):
+        os.environ["PATH"] = _keg + os.pathsep + os.environ.get("PATH", "")
+        break
+
 # Demuxer names as ffprobe reports them (format=format_name, split on commas).
 ALLOWED = {"mov", "mp4", "m4a", "3gp", "3g2", "mj2", "matroska", "webm", "avi", "mpegts",
            "mpeg", "flv", "asf", "wav", "w64", "aiff", "mp3", "aac", "flac", "ogg", "caf",
-           "image2", "png_pipe", "jpeg_pipe", "webp_pipe", "bmp_pipe", "tiff_pipe", "gif"}
+           "image2", "png_pipe", "jpeg_pipe", "webp_pipe", "bmp_pipe", "tiff_pipe", "gif",
+           "jpegxl_pipe"}
+
+# PQ (HDR10, HDR photos) and HLG (iPhone video). Fed straight into yuv420p they come out
+# washed out with clipped highlights, so they go through TONEMAP first.
+HDR = {"smpte2084", "arib-std-b67"}
+# Linearize, tone-map to BT.709, and land in YUV with a BT.709 matrix: a later scale from
+# RGB would pick swscale's BT.601 default and tint the frame. 4:4:4 so odd photo sizes
+# (1600x1093) still work.
+# npl=203: BT.2408 reference white; matched Apple's SDR export on a PQ photo and a Pixel HLG
+# clip within 1 Y. ponytail: one curve for all sources, peaks land ~5% dim; per-source npl if needed
+TONEMAP = ("zscale=t=linear:npl=203,format=gbrpf32le,zscale=p=bt709,tonemap=hable:desat=0,"
+           "zscale=t=bt709:m=bt709:r=tv,format=yuv444p,")
 
 
 @functools.cache
@@ -47,6 +68,16 @@ def media(path):
         sys.exit(f"{path}: not plain media ({why}) — a playlist or list file could make "
                  f"ffmpeg read other files into the render; refusing it")
     return path
+
+
+@functools.cache
+def sdr(path):
+    """Filter-chain prefix that tone-maps path's video to SDR if it is HDR, else ''."""
+    r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                        "stream=color_transfer", "-of", "csv=p=0", path],
+                       capture_output=True, encoding="utf-8", errors="replace")
+    # first field only: phone video carries rotation side data, which csv appends as ",…"
+    return TONEMAP if r.stdout.split(",")[0].strip() in HDR else ""
 
 
 def inside(path, roots, what):
@@ -75,6 +106,17 @@ def self_test():
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=d=1", "-frames:v", "1", still],
                    check=True)
     assert media(still) == still
+    assert sdr(ok) == "", "SDR source tone-mapped"
+    flat, hlg = os.path.join(d, "hlg_flat.mp4"), os.path.join(d, "hlg.mp4")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=d=1",
+                    "-vf", "setparams=color_trc=arib-std-b67", "-c:v", "libx264", flat], check=True)
+    # a phone clip: HLG plus rotation side data, which makes ffprobe's csv end in a comma
+    # -display_rotation is ffmpeg 7+; 6.x (Ubuntu CI) still turns the old rotate tag into side data
+    if subprocess.run(["ffmpeg", "-v", "error", "-y", "-display_rotation", "90", "-i", flat,
+                       "-c", "copy", hlg]).returncode:
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", flat, "-c", "copy",
+                        "-metadata:s:v:0", "rotate=90", hlg], check=True)
+    assert sdr(hlg) == TONEMAP, "HLG phone clip not tone-mapped"
     for name, body in (("list.mp4", "ffconcat version 1.0\nfile 'ok.mp4'\n"),
                        ("playlist.mp4", "#EXTM3U\n#EXT-X-TARGETDURATION:1\n#EXTINF:1,\nok.mp4\n#EXT-X-ENDLIST\n")):
         p = os.path.join(d, name)

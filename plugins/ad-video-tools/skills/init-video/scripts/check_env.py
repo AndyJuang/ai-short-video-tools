@@ -29,6 +29,7 @@ import sys
 # checker can never disagree with the builder about which font a language gets.
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "..", "..", "video-style-clone", "scripts"))
+import ffsafe  # noqa: E402,F401  same ffmpeg the renderers use: ffmpeg-full first when installed
 SAMPLES = {"tc": "繁體中文限時優惠", "sc": "简体中文限时优惠", "jp": "日本語カタカナ限定",
            "ko": "한국어 특별 혜택", "en": "Limited offer"}
 PALETTE_KEYS = ("accent", "panel", "ink", "surface", "white", "muted")
@@ -54,7 +55,7 @@ def fail(msg):
 # only for terminals opened after the install — restart Claude afterwards.
 OS = "mac" if sys.platform == "darwin" else "windows" if os.name == "nt" else "linux"
 INSTALL = {
-    "ffmpeg": {"mac": "brew install ffmpeg", "windows": "winget install Gyan.FFmpeg",
+    "ffmpeg": {"mac": "brew install ffmpeg-full", "windows": "winget install Gyan.FFmpeg",
                "linux": "sudo apt install ffmpeg"},
     "uv": {"mac": "brew install uv", "windows": "winget install astral-sh.uv",
            "linux": "curl -LsSf https://astral.sh/uv/install.sh | sh"},
@@ -66,6 +67,16 @@ def check_tools():
     for exe in ("ffmpeg", "ffprobe"):
         (ok if shutil.which(exe) else fail)(
             f"{exe} on PATH" + ("" if shutil.which(exe) else f" — {INSTALL['ffmpeg'][OS]}"))
+    if shutil.which("ffmpeg"):
+        # Without these the render still runs; HDR photos and iPhone HDR video come out washed
+        # out (no zscale) and .jxl stills fail to open (no libjxl).
+        for kind, name, why in (("filters", "zscale", "HDR footage renders washed out"),
+                                ("decoders", "libjxl", ".jxl stills cannot be read")):
+            listed = subprocess.run(["ffmpeg", "-hide_banner", f"-{kind}"],
+                                    capture_output=True, text=True).stdout
+            have = f" {name} " in listed
+            (ok if have else warn)(f"ffmpeg {name}" + ("" if have else
+                                   f" missing — {why}; {INSTALL['ffmpeg'][OS]}"))
     if shutil.which("uv"):
         ok("uv on PATH")
     else:

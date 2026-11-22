@@ -59,7 +59,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import beats             # noqa: E402  stdlib at import; librosa only in its own uv env
 import index_materials   # noqa: E402  digest(), the same hash materials.json records
-from ffsafe import inside, media  # noqa: E402  refuse playlist/list files posing as media
+from ffsafe import inside, media, sdr  # noqa: E402  refuse playlist/list files posing as media; HDR->SDR
 
 
 def plugin_templates():
@@ -504,7 +504,7 @@ def render_caption(path, l1, l2):
 
 
 # ---- assembly -------------------------------------------------------------
-IMAGE_EXT = (".jpg", ".jpeg", ".png", ".webp", ".heic", ".tif", ".tiff")
+IMAGE_EXT = (".jpg", ".jpeg", ".png", ".webp", ".heic", ".tif", ".tiff", ".jxl", ".avif")
 SLIDE_DUR = 3.0          # per still when video.json gives no shot list
 LOUDNESS = "I=-14:TP=-1.5:LRA=11"   # shorts output spec: -14 LUFS, not overridable
 
@@ -685,14 +685,15 @@ def build_shot(i, a, dur, cap_png, mode, hits=()):
     if mode == "slides":
         # Cover-fit the still into the window, then the 2x upscale that keeps
         # zoompan from stair-stepping.
-        pre = (f"[0:v]scale={W}:{VID_H}:force_original_aspect_ratio=increase,"
+        still = media(still_for(i, a))
+        pre = (f"[0:v]{sdr(still)}scale={W}:{VID_H}:force_original_aspect_ratio=increase,"
                f"crop={W}:{VID_H},scale={W * 2}:{VID_H * 2},")
-        inp = ["-loop", "1", "-t", f"{dur}", "-i", media(still_for(i, a))]
+        inp = ["-loop", "1", "-t", f"{dur}", "-i", still]
     else:
         x0, y0, cw, ch = crop_rect(*probe_size(SRC))
         # fps first: zoompan d=1 emits one frame per input frame, so 60 fps
         # footage would otherwise play at half speed and lose half the shot.
-        pre = (f"[0:v]fps={FPS},crop={cw}:{ch}:{x0}:{y0},scale={W * 2}:{VID_H * 2},")
+        pre = (f"[0:v]{sdr(SRC)}fps={FPS},crop={cw}:{ch}:{x0}:{y0},scale={W * 2}:{VID_H * 2},")
         inp = ["-ss", f"{a}", "-t", f"{dur}", "-i", media(SRC)]
     vf = pre + kenburns(i, hits) + "[bg];" + caption_overlay()
     run(["ffmpeg", "-v", "error", "-y", *inp,
@@ -762,7 +763,9 @@ def main():
            "-loop", "1", "-t", f"{total}", "-i", chrome]
     vfilter = (f"[0:v]{pulse(beat_t, total)}pad={W}:{H}:0:{VID_Y}:color=white[p];"
                f"[p][1:v]overlay=0:0:format=auto,"
-               f"fade=t=in:st=0:d=0.4,fade=t=out:st={total - 0.5:.2f}:d=0.5[v]")
+               f"fade=t=in:st=0:d=0.4,fade=t=out:st={total - 0.5:.2f}:d=0.5,"
+               # in the graph, not as -color_* flags: ffmpeg 9 takes the tags from the frames
+               f"setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709[v]")
     maps = ["-map", "[v]"]
     if bed_:
         cmd += ["-stream_loop", "-1", "-ss", f"{MUSIC_IN}", "-t", f"{total}", "-i", media(bed_)]

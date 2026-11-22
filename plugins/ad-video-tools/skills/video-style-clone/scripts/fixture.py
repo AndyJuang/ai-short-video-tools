@@ -23,6 +23,8 @@ import tempfile
 
 from PIL import Image, ImageDraw
 
+import ffsafe  # noqa: F401  puts Homebrew's ffmpeg-full first on PATH
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 BUILD = os.path.join(HERE, "build.py")
 
