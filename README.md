@@ -1,4 +1,4 @@
-# applemint-marketplace（影片製作版）
+# ai-short-video-tools（AI 短影音製作工具）
 
 This is a video-focused copy of [applemint-ltd/applemint-marketplace](https://github.com/applemint-ltd/applemint-marketplace). 這是上游 marketplace 的影片製作精簡版，只保留與影片製作相關的 Claude Code plugin。
 
@@ -20,8 +20,8 @@ Skills in `ad-video-tools`:
 上游 README 只說明 Claude Code 的安裝方式；本倉庫沿用同一組指令，來源改為本帳號：
 
 ```
-/plugin marketplace add AndyJuang/applemint-marketplace
-/plugin install ad-video-tools@applemint-marketplace
+/plugin marketplace add AndyJuang/ai-short-video-tools
+/plugin install ad-video-tools@ai-short-video-tools
 ```
 
 上游安裝來源是 `applemint-ltd/applemint-marketplace`。
